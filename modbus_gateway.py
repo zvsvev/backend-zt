@@ -22,7 +22,7 @@ DB_PASSWORD = "password"
 
 # Modbus TCP Connection (Adjust to match your PLC/ESP32/Hardware)
 MODBUS_HOST = "127.0.0.1" 
-MODBUS_PORT = 502      # Standard Modbus TCP port is 502
+MODBUS_PORT = 5020     # Standard Modbus TCP port is 502, we use 5020 locally to avoid sudo permissions
 
 # Device Slave ID
 SLAVE_ID = 1

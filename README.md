@@ -2,68 +2,57 @@
 
 Welcome to the Farm Management System. This project bridges top-level web API interfaces with low-level industrial IoT (Internet of Things) devices using Modbus protocol. It is driven by a PostgreSQL database schema specifically designed for modern farms (Kandang, Lantai) and hardware actuators (Blowers, Dimmers, Heaters, Pumps).
 
-This guide explains how to use both the **Swagger UI REST API setup** and the **PyModbus IoT integration**.
+This repository contains:
+1. A **FastAPI** web backend with automatically generated Swagger UI.
+2. A **PyModbus** daemon script acting as an IoT Gateway between PostgreSQL and physical actuators.
 
 ---
 
-## Part 1: How the Swagger UI Works
-
-The Swagger UI provides a visual, interactive interface to view and test your REST API endpoints. Instead of using tools like Postman, you can use Swagger UI to directly interact with your database using standard HTTP methods (GET, POST, PUT, DELETE).
-
-### 1. The OpenAPI Specification (`openapi.yaml`)
-We designed an OpenAPI 3.0 configuration file (`openapi.yaml`). This file translates your exact database Entity-Relationship Diagram (ERD) into RESTful endpoints:
-- **/kandang & /lantai:** Manage the structure and locations of the farm.
-- **/actuators:** View live states (`current_status`, `current_value`) of farm hardware mapped via UUIDs.
-- **/actuators/{uuid}/*_config**: Set thresholds (like `min_temperature`, `interval_on_duration`) for blowers, heaters, dimmers, and pumps.
-- **/audit_logs:** Track when configurations are modified.
-
-### 2. The User Interface (`index.html`)
-The `index.html` file acts as the host client. It loads the official Swagger UI libraries through a CDN, applies a customized dark-mode/light-mode experience, and mounts the endpoints specified in `openapi.yaml`.
-
-### 3. How to Run and Test
-Since `index.html` fetches the YAML file locally, you need a local server to avoid CORS issues:
-
-1. Open your terminal in this directory.
-2. Run a simple Python web server:
-   ```bash
-   python3 -m http.server 3000
-   ```
-3. Open your browser and navigate to **[http://localhost:3000](http://localhost:3000)**.
-4. From here, you can click on endpoints, click "Try it out", and see what standard JSON payloads the API requires based on your database ERD.
+## The Architecture & Synchronization
+The system works through two-way IoT synchronization:
+1. **Reading from Hardware:** The Python gateway uses PyModbus to read electrical holding registers from hardware (e.g., current temperature). It then connects to PostgreSQL and runs an `UPDATE actuator` query. The Swagger UI reflects this new live data.
+2. **Writing to Hardware:** A user updates an Actuator's config (e.g. Blower `max_temperature`) via the Swagger UI. The gateway script constantly polls the database. When it sees an update, it sends a `write_register` signal to update the local memory bank on the physical farm hardware.
 
 ---
 
-## Part 2: How to Try PyModbus (IoT Gateway)
+## How to Test and Run Locally (End-to-End Simulation)
 
-The web API alone cannot talk to physical hardware; Modbus is the standard industrial language used by Actuators and PLCs. To bridge the Postgres database and the physical Modbus devices, we use **PyModbus**.
+To perform a complete test of the system on your local machine, you will need 4 separate terminal windows to run each micro-component identically to a real production farm environment.
 
-We accomplish this through a "Daemon Gateway" script (`modbus_gateway.py`), which runs endlessly in the background.
-
-### The Two-Way Synchronization Concept
-
-1. **Reading from Hardware:** The Python gateway uses PyModbus to read electrical holding registers from your hardware (e.g., current temperature). It then connects to PostgreSQL using `psycopg2` and runs an `UPDATE actuator SET current_value = X` query. The Swagger UI will now reflect this new data!
-2. **Writing to Hardware:** A user updates a Blower's `max_temperature` limit via the Swagger UI. The gateway script constantly polls the `blower_config` table. When it sees the update, it uses PyModbus to send a `write_register` signal to update the local memory bank on the physical farm hardware.
-
-### Prerequisites to Run PyModbus
-Make sure your environment is prepared by installing the required modbus and database drivers:
-
+### Terminal 1: Spin up the PostgreSQL Database
+You need a database running for the API to connect to. We have provided a `docker-compose.yml` to spin it up instantly without manual installation.
+Run this command:
 ```bash
-pip install pymodbus psycopg2-binary
+docker compose up -d
+```
+*(This starts a Postgres database in the background on port 5432 with the expected user/password).*
+
+### Terminal 2: Run the FastAPI Web Server
+With the database running, launch your web API framework. First, install the requirements if you haven't:
+```bash
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+You can now open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to view the Auto-Generated Swagger Interface based on your database ERD. Feel free to use the `POST` endpoints here to create some mock Actuators so the database has rows to sync!
+
+### Terminal 3: Power On the Mock Hardware
+Since you likely don't have physical PLCs and actuators wired to your laptop, run our mock hardware script. This acts exactly like a physical hardware sensor sitting on the farm.
+```bash
+python3 mock_modbus_server.py
 ```
 
-*(Note: Depending on your Python configuration, you might need to use `pip3`)*
+### Terminal 4: Start the IoT Gateway (The "PyModbus Test")
+Finally, run the Modbus bridging daemon! This script reads from your database (Terminal 2) and writes to the hardware (Terminal 3), and vice versa. 
+```bash
+python3 modbus_gateway.py
+```
 
-### How to Test / Simulate It
+**Testing the Flow:**
+Go to your Swagger UI (`localhost:8000/docs`). Find the Blower Config PUT endpoint, change the `max_temperature`, and watch Terminal 4 instantly log that it passed that exact configuration down perfectly to the mock hardware!
 
-If you don't have a physical Blower or Heater connected to your local network, you can still test it cleanly!
+---
 
-1. **Setup the Database:** Ensure you have PostgreSQL running with a database named `farm_db` that contains the tables described in your ERD (`actuator`, `blower_config`, etc).
-2. **Update the Gateway Credentials:** Open `modbus_gateway.py` and ensure `DB_USER` and `DB_PASSWORD` align with your local Postgres configuration.
-3. **Run a Mock Modbus Server**: In a separate terminal, install a modbus server to simulate the hardware:
-   *(PyModbus syntax varies slightly between v2 and v3. Consult PyModbus official examples to run a synchronous mock server simulating `localhost:502`).
-4. **Execute the Gateway:** Run the bridge script:
-   ```bash
-   python3 modbus_gateway.py
-   ```
+## Vercel Deployment Note
+If you want to deploy this API to the cloud using Vercel, Vercel will auto-read our `vercel.json` file and host the FastAPI application (`main.py`) flawlessly! 
 
-Watch your terminal. The script will securely bridge the gap, printing logs every 5 seconds as it passes settings back and forth between the high-level PostgreSQL system and the low-level Modbus hardware.
+However, **do NOT deploy the `modbus_gateway.py` script to Vercel**. Vercel uses "Serverless Functions" which spin up and die in milliseconds; they are strictly designed to handle web server API requests. The IoT PyModbus gateway is a "daemon" containing a `while True:` loop. It must run indefinitely on a machine that stays constantly powered on (like a Raspberry Pi sitting on the farm, or an EC2 instance), pointing it to your remote Database URL.
