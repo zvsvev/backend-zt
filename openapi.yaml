@@ -1,0 +1,572 @@
+openapi: 3.0.0
+info:
+  title: Farm Management API
+  description: API for managing kandang, lantai, actuators, and their configurations. Generated from ERD.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+tags:
+  - name: Kandang
+    description: Barn operations
+  - name: Lantai
+    description: Floor operations
+  - name: Actuators
+    description: IoT Actuators like blowers, dimmers, heaters, and pumps
+  - name: Config
+    description: Configuration operations for actuators
+  - name: Audit
+    description: Audit logs for configuration changes
+
+paths:
+  /kandang:
+    get:
+      tags: [Kandang]
+      summary: Get all kandang
+      responses:
+        '200':
+          description: A list of kandang
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Kandang'
+    post:
+      tags: [Kandang]
+      summary: Create a new kandang
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KandangInput'
+      responses:
+        '201':
+          description: Created
+
+  /kandang/{id}:
+    get:
+      tags: [Kandang]
+      summary: Get kandang by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A kandang object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kandang'
+    put:
+      tags: [Kandang]
+      summary: Update kandang
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KandangInput'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Kandang]
+      summary: Delete kandang
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
+  /lantai:
+    get:
+      tags: [Lantai]
+      summary: Get all lantai
+      parameters:
+        - name: kandang_id
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of lantai
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Lantai'
+    post:
+      tags: [Lantai]
+      summary: Create a new lantai
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LantaiInput'
+      responses:
+        '201':
+          description: Created
+
+  /lantai/{id}:
+    get:
+      tags: [Lantai]
+      summary: Get lantai by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A lantai object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lantai'
+    put:
+      tags: [Lantai]
+      summary: Update lantai
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LantaiInput'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Lantai]
+      summary: Delete lantai
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
+  /actuators:
+    get:
+      tags: [Actuators]
+      summary: Get all actuators
+      parameters:
+        - name: lantai_id
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of actuators
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Actuator'
+    post:
+      tags: [Actuators]
+      summary: Create a new actuator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActuatorInput'
+      responses:
+        '201':
+          description: Created
+
+  /actuators/{uuid}:
+    get:
+      tags: [Actuators]
+      summary: Get actuator by UUID
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: An actuator object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Actuator'
+    put:
+      tags: [Actuators]
+      summary: Update actuator properties
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActuatorInput'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Actuators]
+      summary: Delete actuator
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deleted
+
+  /actuators/{uuid}/blower_config:
+    get:
+      tags: [Config]
+      summary: Get blower config
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Blower config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlowerConfig'
+    put:
+      tags: [Config]
+      summary: Update blower config
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlowerConfig'
+      responses:
+        '200':
+          description: Updated
+
+  /actuators/{uuid}/dimmer_config:
+    get:
+      tags: [Config]
+      summary: Get dimmer config
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Dimmer config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DimmerConfig'
+    put:
+      tags: [Config]
+      summary: Update dimmer config
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DimmerConfig'
+      responses:
+        '200':
+          description: Updated
+
+  /actuators/{uuid}/heater_config:
+    get:
+      tags: [Config]
+      summary: Get heater config
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Heater config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeaterConfig'
+    put:
+      tags: [Config]
+      summary: Update heater config
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeaterConfig'
+      responses:
+        '200':
+          description: Updated
+
+  /actuators/{uuid}/pump_config:
+    get:
+      tags: [Config]
+      summary: Get pump config
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Pump config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PumpConfig'
+    put:
+      tags: [Config]
+      summary: Update pump config
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PumpConfig'
+      responses:
+        '200':
+          description: Updated
+
+  /audit_logs:
+    get:
+      tags: [Audit]
+      summary: Get actuator configuration audit logs
+      parameters:
+        - name: actuator_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: A list of audit logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfigAuditLog'
+
+components:
+  schemas:
+    KandangInput:
+      type: object
+      required:
+        - name
+        - lokasi
+      properties:
+        name:
+          type: string
+        lokasi:
+          type: string
+    Kandang:
+      allOf:
+        - $ref: '#/components/schemas/KandangInput'
+        - type: object
+          properties:
+            id:
+              type: integer
+    
+    LantaiInput:
+      type: object
+      required:
+        - kandang_id
+        - name
+      properties:
+        kandang_id:
+          type: integer
+        name:
+          type: string
+    Lantai:
+      allOf:
+        - $ref: '#/components/schemas/LantaiInput'
+        - type: object
+          properties:
+            id:
+              type: integer
+
+    ActuatorInput:
+      type: object
+      required:
+        - lantai_id
+        - name
+        - type
+        - mode
+      properties:
+        lantai_id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          description: "type of actuator e.g., blower, dimmer, heater, pump"
+        mode:
+          type: string
+        current_status:
+          type: boolean
+        current_value:
+          type: number
+          format: float
+    Actuator:
+      allOf:
+        - $ref: '#/components/schemas/ActuatorInput'
+        - type: object
+          properties:
+            uuid:
+              type: string
+              format: uuid
+            updated_at:
+              type: string
+              format: date-time
+
+    BlowerConfig:
+      type: object
+      properties:
+        actuator_id:
+          type: string
+          format: uuid
+        interval_on_duration:
+          type: integer
+        interval_off_duration:
+          type: integer
+        min_temperature:
+          type: number
+          format: float
+        max_temperature:
+          type: number
+          format: float
+
+    DimmerConfig:
+      type: object
+      properties:
+        actuator_id:
+          type: string
+          format: uuid
+        min_brightness:
+          type: integer
+        max_brightness:
+          type: integer
+
+    HeaterConfig:
+      type: object
+      properties:
+        actuator_id:
+          type: string
+          format: uuid
+        min_temperature:
+          type: number
+          format: float
+        max_temperature:
+          type: number
+          format: float
+
+    PumpConfig:
+      type: object
+      properties:
+        actuator_id:
+          type: string
+          format: uuid
+        interval_on_duration:
+          type: integer
+        interval_off_duration:
+          type: integer
+
+    ConfigAuditLog:
+      type: object
+      properties:
+        id_log:
+          type: integer
+        actuator_id:
+          type: string
+          format: uuid
+        parameter_yang_diubah:
+          type: string
+        nilai_lama:
+          type: string
+        nilai_baru:
+          type: string
+        waktu_perubahan:
+          type: string
+          format: date-time
