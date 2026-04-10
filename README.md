@@ -34,7 +34,16 @@ DB_PORT=5432
 ### Terminal 1: Run the FastAPI Web Server
 Now that your database is configured in `.env`, launch your web API framework. First, install the requirements if you haven't:
 ```bash
+# 1. Create an isolated virtual environment
+python3 -m venv venv
+
+# 2. Activate it (Run this every time you open a new terminal)
+source venv/bin/activate
+
+# 3. Install requirements
 pip install -r requirements.txt
+
+# 4. Start the server
 python3 -m uvicorn main:app --reload
 ```
 You can now open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to view the Auto-Generated Swagger Interface based on your database ERD. Feel free to use the `POST` endpoints here to create some mock Actuators so the database has rows to sync!
