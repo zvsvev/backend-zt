@@ -15,40 +15,44 @@ The system works through two-way IoT synchronization:
 
 ---
 
-## How to Test and Run Locally (End-to-End Simulation)
+## How to Test and Run Locally (Cloud Database Simulation)
 
-To perform a complete test of the system on your local machine, you will need 4 separate terminal windows to run each micro-component identically to a real production farm environment.
+To perform a complete test of the system on your local machine, you will need 3 separate terminal windows to run each micro-component identically to a real production farm environment. 
 
-### Terminal 1: Spin up the PostgreSQL Database
-You need a database running for the API to connect to. We have provided a `docker-compose.yml` to spin it up instantly without manual installation.
-Run this command:
-```bash
-docker compose up -d
+### Prerequisites (Database)
+Instead of running a heavy local Docker container, this backend optimally targets a free Cloud Database (Supabase/Neon).
+Simply update the `.env` file in this directory with your Supabase credentials:
+```env
+DB_HOST=db.your_supabase_project_id.supabase.co
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=your_secure_password
+DB_PORT=5432
 ```
-*(This starts a Postgres database in the background on port 5432 with the expected user/password).*
+*(The backend logic automatically syncs using python-dotenv).*
 
-### Terminal 2: Run the FastAPI Web Server
-With the database running, launch your web API framework. First, install the requirements if you haven't:
+### Terminal 1: Run the FastAPI Web Server
+Now that your database is configured in `.env`, launch your web API framework. First, install the requirements if you haven't:
 ```bash
 pip install -r requirements.txt
-uvicorn main:app --reload
+python3 -m uvicorn main:app --reload
 ```
 You can now open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser to view the Auto-Generated Swagger Interface based on your database ERD. Feel free to use the `POST` endpoints here to create some mock Actuators so the database has rows to sync!
 
-### Terminal 3: Power On the Mock Hardware
+### Terminal 2: Power On the Mock Hardware
 Since you likely don't have physical PLCs and actuators wired to your laptop, run our mock hardware script. This acts exactly like a physical hardware sensor sitting on the farm.
 ```bash
 python3 mock_modbus_server.py
 ```
 
-### Terminal 4: Start the IoT Gateway (The "PyModbus Test")
-Finally, run the Modbus bridging daemon! This script reads from your database (Terminal 2) and writes to the hardware (Terminal 3), and vice versa. 
+### Terminal 3: Start the IoT Gateway (The "PyModbus Test")
+Finally, run the Modbus bridging daemon! This script reads from your database (Terminal 1) and writes to the hardware (Terminal 2), and vice versa. 
 ```bash
 python3 modbus_gateway.py
 ```
 
 **Testing the Flow:**
-Go to your Swagger UI (`localhost:8000/docs`). Find the Blower Config PUT endpoint, change the `max_temperature`, and watch Terminal 4 instantly log that it passed that exact configuration down perfectly to the mock hardware!
+Go to your Swagger UI (`localhost:8000/docs`). Find the Blower Config PUT endpoint, change the `max_temperature`, and watch Terminal 3 instantly log that it passed that exact configuration down perfectly to the mock hardware!
 
 ---
 

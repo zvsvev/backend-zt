@@ -1,6 +1,11 @@
+import os
 import time
 import psycopg2
+from dotenv import load_dotenv
 from pymodbus.client import ModbusTcpClient
+
+# Load variables from .env file
+load_dotenv()
 
 """
 Farm Management IoT Gateway Demo
@@ -14,11 +19,12 @@ It demonstrates a two-way sync loop:
 """
 
 # ================= Configuration =================
-# Database Connection (Adjust to match your PostgreSQL setup)
-DB_HOST = "localhost"
-DB_NAME = "farm_db"
-DB_USER = "postgres"
-DB_PASSWORD = "password"
+# Database Connection (Will auto-load from your .env file)
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "postgres")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
 
 # Modbus TCP Connection (Adjust to match your PLC/ESP32/Hardware)
 MODBUS_HOST = "127.0.0.1" 
@@ -32,7 +38,7 @@ def run_gateway():
     print("🔌 Connecting to PostgreSQL Database...")
     try:
         conn = psycopg2.connect(
-            host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD
+            host=DB_HOST, port=DB_PORT, database=DB_NAME, user=DB_USER, password=DB_PASSWORD
         )
         conn.autocommit = True
         cursor = conn.cursor()
